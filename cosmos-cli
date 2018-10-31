@@ -1,10 +1,10 @@
 #!/usr/bin/env python
-from cmd import Cmd
+from cmd2 import Cmd
 from pydocumentdb.errors import HTTPFailure
 from pygments import highlight
 from pygments.lexers import JsonLexer
 from pygments.formatters import TerminalFormatter
-from termcolor import colored, cprint
+from termcolor import colored
 import json
 import os
 import pydocumentdb.document_client as document_client
@@ -13,7 +13,7 @@ import re
 
 class CosmosPrompt(Cmd):
     def __init__(self):
-        Cmd.__init__(self)
+        Cmd.__init__(self, persistent_history_file='~/.cosmos-cli-history')
         self.client = self.get_client()       
         self.database = None
         self.collection = None
@@ -27,7 +27,7 @@ class CosmosPrompt(Cmd):
                 {'masterKey': os.environ['COSMOS_ACCOUNT_KEY']}
             )
         except:
-            cprint('Set COSMOS_ENDPOINT and COSMOS_ACCOUNT_KEY in the environment.', 'yellow', attrs['bold'])
+            self.pfeedback('Set COSMOS_ENDPOINT and COSMOS_ACCOUNT_KEY in the environment.')
             raise SystemExit
         return client
 
@@ -45,7 +45,7 @@ class CosmosPrompt(Cmd):
     def do_export(self, args):
         """Export last result (if set) to file in JSON format"""
         if not self.result_json:
-            cprint('No result to export. Make a SELECT query.', 'yellow', attrs=['bold'])
+            self.pfeedback('No result to export. Make a SELECT query.')
             return
         with open(os.path.expanduser(args), 'w') as outfile:
             outfile.write(self.result_json)
@@ -60,24 +60,24 @@ class CosmosPrompt(Cmd):
                 indent=2,
                 sort_keys=True,
             )
-            print(highlight(self.result_json, JsonLexer(), TerminalFormatter()))
+            self.ppaged(highlight(self.result_json, JsonLexer(), TerminalFormatter()))
         except HTTPFailure as e:
             try:
                 body = str(e).split('\n', 1)[1]
                 error = json.loads(body)
                 message = json.loads(error['message'].split('\r')[0][9:])['errors'][0]['message']
-                cprint(message, 'red', attrs=['bold'])
+                self.perror(message, traceback_war=False)
             except Exception:
                 # if payload is unexpected shape, print entire exception
-                cprint(e, 'red', attrs=['bold'])
+                self.perror(e, traceback_war=False)
         except ValueError as e:
-            cprint(e, 'yellow', attrs=['bold'])
+            self.pfeedback(e)
 
     def do_SELECT(self, args):
         return self.do_select(args)
 
     def do_path(self, args):
-        print(self.get_collection_path(silent=True))
+        self.poutput(self.get_collection_path(silent=True))
 
     def do_EOF(self, args):
         return self.do_exit(args)
