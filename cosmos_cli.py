@@ -14,7 +14,7 @@ import re
 class CosmosPrompt(Cmd):
     def __init__(self):
         Cmd.__init__(self, persistent_history_file='~/.cosmos-cli-history')
-        self.client = self.get_client()       
+        self.client = self.get_client()
         self.database = None
         self.collection = None
         self.result_json = None
@@ -40,7 +40,11 @@ class CosmosPrompt(Cmd):
         return '/dbs/{}/colls/{}'.format(self.database, self.collection)
 
     def update_prompt(self):
-        self.prompt = '[{}] '.format(self.get_collection_path(silent=True))
+        self.prompt = '{}{}{} '.format(
+            colored('[', color='white', attrs=['bold']),
+            colored(self.get_collection_path(silent=True), color='white'),
+            colored(']', color='white', attrs=['bold']),
+        )
 
     def do_export(self, args):
         """Export last result (if set) to file in JSON format"""
@@ -94,6 +98,6 @@ class CosmosPrompt(Cmd):
         self.update_prompt()
 
 
-if __name__ == '__main__':
+def main():
     prompt = CosmosPrompt()
-    prompt.cmdloop(colored('Connected to CosmosDB', 'white', attrs=['bold']))
+    prompt.cmdloop('Connected to CosmosDB')
