@@ -6,5 +6,7 @@ setup(
     scripts=['cosmos-cli'],
     install_requires=[
         'pydocumentdb',
+        'pygments',
+        'termcolor',
     ]
 )

@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 from cmd import Cmd
-from pprint import pprint
 from pydocumentdb.errors import HTTPFailure
+from pygments import highlight
+from pygments.lexers import JsonLexer
+from pygments.formatters import TerminalFormatter
+from termcolor import colored, cprint
 import json
 import os
 import pydocumentdb.document_client as document_client
@@ -23,7 +26,7 @@ class CosmosPrompt(Cmd):
                 {'masterKey': os.environ['COSMOS_ACCOUNT_KEY']}
             )
         except:
-            print('Set COSMOS_ENDPOINT and COSMOS_ACCOUNT_KEY in the environment.')
+            cprint('Set COSMOS_ENDPOINT and COSMOS_ACCOUNT_KEY in the environment.', 'yellow', attrs['bold'])
             raise SystemExit
         return client
 
@@ -36,23 +39,27 @@ class CosmosPrompt(Cmd):
         return '/dbs/{}/colls/{}'.format(self.database, self.collection)
 
     def update_prompt(self):
-        self.prompt = '[{}] '.format(self.get_collection_path(silent=True))
+        self.prompt = '{}{}{} '.format(
+            colored('[', 'white'),
+            colored(self.get_collection_path(silent=True), 'white', attrs=['bold']),
+            colored(']', 'white'),
+        )
 
     def do_select(self, args):
         try:
             self.result = self.client.QueryDocuments(self.get_collection_path(), {'query': 'SELECT {}'.format(args)})
-            pprint(list(self.result))
+            print(highlight(json.dumps(list(self.result), indent=2, sort_keys=True), JsonLexer(), TerminalFormatter()))
         except HTTPFailure as e:
             try:
                 body = str(e).split('\n', 1)[1]
                 error = json.loads(body)
                 message = json.loads(error['message'].split('\r')[0][9:])['errors'][0]['message']
-                print(message)
+                cprint(message, 'red', attrs=['bold'])
             except Exception:
                 # if payload is unexpected shape, print entire exception
-                print(e)
+                cprint(e, 'red', attrs=['bold'])
         except ValueError as e:
-            print(e)
+            cprint(e, 'red', attrs=['bold'])
 
     def do_SELECT(self, args):
         return self.do_select(args)
