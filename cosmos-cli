@@ -17,6 +17,7 @@ class CosmosPrompt(Cmd):
         self.client = self.get_client()       
         self.database = None
         self.collection = None
+        self.result_json = None
         self.update_prompt()
 
     def get_client(self):
@@ -41,10 +42,25 @@ class CosmosPrompt(Cmd):
     def update_prompt(self):
         self.prompt = '[{}] '.format(self.get_collection_path(silent=True))
 
+    def do_export(self, args):
+        """Export last result (if set) to file in JSON format"""
+        if not self.result_json:
+            cprint('No result to export. Make a SELECT query.', 'yellow', attrs=['bold'])
+            return
+        with open(os.path.expanduser(args), 'w') as outfile:
+            outfile.write(self.result_json)
+
     def do_select(self, args):
         try:
-            self.result = self.client.QueryDocuments(self.get_collection_path(), {'query': 'SELECT {}'.format(args)})
-            print(highlight(json.dumps(list(self.result), indent=2, sort_keys=True), JsonLexer(), TerminalFormatter()))
+            self.result_json = json.dumps(
+                list(self.client.QueryDocuments(
+                    self.get_collection_path(),
+                    {'query': 'SELECT {}'.format(args)}
+                )),
+                indent=2,
+                sort_keys=True,
+            )
+            print(highlight(self.result_json, JsonLexer(), TerminalFormatter()))
         except HTTPFailure as e:
             try:
                 body = str(e).split('\n', 1)[1]
@@ -55,7 +71,7 @@ class CosmosPrompt(Cmd):
                 # if payload is unexpected shape, print entire exception
                 cprint(e, 'red', attrs=['bold'])
         except ValueError as e:
-            cprint(e, 'red', attrs=['bold'])
+            cprint(e, 'yellow', attrs=['bold'])
 
     def do_SELECT(self, args):
         return self.do_select(args)
@@ -80,4 +96,4 @@ class CosmosPrompt(Cmd):
 
 if __name__ == '__main__':
     prompt = CosmosPrompt()
-    prompt.cmdloop('Connected to CosmosDB')
+    prompt.cmdloop(colored('Connected to CosmosDB', 'white', attrs=['bold']))
