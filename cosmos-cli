@@ -13,7 +13,7 @@ import re
 
 class CosmosPrompt(Cmd):
     def __init__(self):
-        super().__init__()
+        Cmd.__init__(self)
         self.client = self.get_client()       
         self.database = None
         self.collection = None
