@@ -19,7 +19,7 @@ Updated to use [cmd2](https://github.com/python-cmd2/cmd2) which adds lots of op
 
 * Smart output redirection using | and > (> with no destination goes to clipboard)
 * History file support
-* Color stripping when redirecting, aliases, etc.
+* Color stripping when redirecting, aliases, etc. (only with pager off)
 * Smart paging
 
 Current usage is extremely simple and made for simple queries. Possible rough roadmap

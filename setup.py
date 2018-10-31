@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='cosmos-cli',
-    version='0.6',
+    version='0.7',
     url='https://github.com/gopuff/cosmos-cli',
     maintainer='Ethan McCreadie',
     maintainer_email='ethan.mccreadie@gopuff.com',

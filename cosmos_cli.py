@@ -18,6 +18,7 @@ class CosmosPrompt(Cmd):
         self.database = None
         self.collection = None
         self.result_json = None
+        self.output_function = self.ppaged
         self.update_prompt()
 
     def get_client(self):
@@ -26,17 +27,22 @@ class CosmosPrompt(Cmd):
                 os.environ['COSMOS_ENDPOINT'],
                 {'masterKey': os.environ['COSMOS_ACCOUNT_KEY']}
             )
-        except:
-            self.pfeedback('Set COSMOS_ENDPOINT and COSMOS_ACCOUNT_KEY in the environment.')
+        except Exception:
+            self.pfeedback(
+                'Set COSMOS_ENDPOINT and COSMOS_ACCOUNT_KEY '
+                'in the environment.')
             raise SystemExit
         return client
 
     def get_collection_path(self, silent=False):
         if not silent:
             if self.database is None:
-                raise ValueError('Use "database <database_name>" to select CosmosDB database')
+                raise ValueError(
+                    'Use "database <database_name>" '
+                    'to select CosmosDB database')
             if self.collection is None:
-                raise ValueError('Use "collection <collection_name>" to select CosmosDB collection')
+                raise ValueError('Use "collection <collection_name>" '
+                                 'to select CosmosDB collection')
         return '/dbs/{}/colls/{}'.format(self.database, self.collection)
 
     def update_prompt(self):
@@ -55,6 +61,7 @@ class CosmosPrompt(Cmd):
             outfile.write(self.result_json)
 
     def do_select(self, args):
+        """Query CosmosDB documents using a select statement."""
         try:
             self.result_json = json.dumps(
                 list(self.client.QueryDocuments(
@@ -64,12 +71,15 @@ class CosmosPrompt(Cmd):
                 indent=2,
                 sort_keys=True,
             )
-            self.ppaged(highlight(self.result_json, JsonLexer(), TerminalFormatter()))
+            self.output_function(highlight(
+                self.result_json, JsonLexer(), TerminalFormatter()))
         except HTTPFailure as e:
             try:
                 body = str(e).split('\n', 1)[1]
                 error = json.loads(body)
-                message = json.loads(error['message'].split('\r')[0][9:])['errors'][0]['message']
+                message = json.loads(
+                    error['message'].split('\r')[0][9:]
+                )['errors'][0]['message']
                 self.perror(message, traceback_war=False)
             except Exception:
                 # if payload is unexpected shape, print entire exception
@@ -77,23 +87,32 @@ class CosmosPrompt(Cmd):
         except ValueError as e:
             self.pfeedback(e)
 
-    def do_SELECT(self, args):
-        return self.do_select(args)
+    def do_pager(self, args):
+        """Set to True (default) to use pager and False to disable.
 
-    def do_path(self, args):
-        self.poutput(self.get_collection_path(silent=True))
+        Color codes are stripped from output during redirection with pager
+        set to False."""
+        if args.lower() == 'true':
+            self.output_function = self.ppaged
+        elif args.lower() == 'false':
+            self.output_function = self.poutput
+        self.poutput('pager: {}'.format(self.output_function == self.ppaged))
 
-    def do_EOF(self, args):
-        return self.do_exit(args)
+    do_SELECT = do_select
 
     def do_exit(self, args):
+        """Exit cosmos-cli"""
         raise SystemExit
 
+    do_EOF = do_exit
+
     def do_database(self, args):
+        """Set CosmosDB database."""
         self.database = args
         self.update_prompt()
 
     def do_collection(self, args):
+        """Set CosmosDB database collection."""
         self.collection = args
         self.update_prompt()
 
