@@ -39,11 +39,7 @@ class CosmosPrompt(Cmd):
         return '/dbs/{}/colls/{}'.format(self.database, self.collection)
 
     def update_prompt(self):
-        self.prompt = '{}{}{} '.format(
-            colored('[', 'white'),
-            colored(self.get_collection_path(silent=True), 'white', attrs=['bold']),
-            colored(']', 'white'),
-        )
+        self.prompt = '[{}] '.format(self.get_collection_path(silent=True))
 
     def do_select(self, args):
         try:
