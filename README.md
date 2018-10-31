@@ -17,7 +17,7 @@ There are currently three main commands:
 
 Updated to use [cmd2](https://github.com/python-cmd2/cmd2) which adds lots of options like:
 
-* Smart output redirection using | and > (> with no destination goes to clipboard)
+* Smart output redirection using |, ->, and ->> (-> with no destination goes to clipboard)
 * History file support
 * Color stripping when redirecting, aliases, etc. (only with pager off)
 * Smart paging

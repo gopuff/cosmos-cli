@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from cmd2 import Cmd
+import cmd2.constants
 from pydocumentdb.errors import HTTPFailure
 from pygments import highlight
 from pygments.lexers import JsonLexer
@@ -13,6 +14,10 @@ import re
 
 class CosmosPrompt(Cmd):
     def __init__(self):
+        cmd2.constants.REDIRECTION_OUTPUT = '->'
+        cmd2.constants.REDIRECTION_APPEND = '->>'
+        cmd2.constants.REDIRECTION_CHARS = [
+            cmd2.constants.REDIRECTION_PIPE, cmd2.constants.REDIRECTION_OUTPUT]
         Cmd.__init__(self, persistent_history_file='~/.cosmos-cli-history')
         self.client = self.get_client()
         self.database = None
