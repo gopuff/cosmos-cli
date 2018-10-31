@@ -1,0 +1,80 @@
+#!/usr/bin/env python
+from cmd import Cmd
+from pprint import pprint
+from pydocumentdb.errors import HTTPFailure
+import json
+import os
+import pydocumentdb.document_client as document_client
+import re
+
+
+class CosmosPrompt(Cmd):
+    def __init__(self):
+        super().__init__()
+        self.client = self.get_client()       
+        self.database = None
+        self.collection = None
+        self.update_prompt()
+
+    def get_client(self):
+        try:
+            client = document_client.DocumentClient(
+                os.environ['COSMOS_ENDPOINT'],
+                {'masterKey': os.environ['COSMOS_ACCOUNT_KEY']}
+            )
+        except:
+            print('Set COSMOS_ENDPOINT and COSMOS_ACCOUNT_KEY in the environment.')
+            raise SystemExit
+        return client
+
+    def get_collection_path(self, silent=False):
+        if not silent:
+            if self.database is None:
+                raise ValueError('Use "database <database_name>" to select CosmosDB database')
+            if self.collection is None:
+                raise ValueError('Use "collection <collection_name>" to select CosmosDB collection')
+        return '/dbs/{}/colls/{}'.format(self.database, self.collection)
+
+    def update_prompt(self):
+        self.prompt = '[{}] '.format(self.get_collection_path(silent=True))
+
+    def do_select(self, args):
+        try:
+            self.result = self.client.QueryDocuments(self.get_collection_path(), {'query': 'SELECT {}'.format(args)})
+            pprint(list(self.result))
+        except HTTPFailure as e:
+            try:
+                body = str(e).split('\n', 1)[1]
+                error = json.loads(body)
+                message = json.loads(error['message'].split('\r')[0][9:])['errors'][0]['message']
+                print(message)
+            except Exception:
+                # if payload is unexpected shape, print entire exception
+                print(e)
+        except ValueError as e:
+            print(e)
+
+    def do_SELECT(self, args):
+        return self.do_select(args)
+
+    def do_path(self, args):
+        print(self.get_collection_path(silent=True))
+
+    def do_EOF(self, args):
+        return self.do_exit(args)
+
+    def do_exit(self, args):
+        raise SystemExit
+
+    def do_database(self, args):
+        self.database = args
+        self.update_prompt()
+
+    def do_collection(self, args):
+        self.collection = args
+        self.update_prompt()
+
+
+if __name__ == '__main__':
+    prompt = CosmosPrompt()
+    prompt.cmdloop('Connected to CosmosDB')
