@@ -73,7 +73,8 @@ class CosmosPrompt(Cmd):
             self.result_json = json.dumps(
                 list(self.client.QueryDocuments(
                     self.get_collection_path(),
-                    {'query': 'SELECT {}'.format(args)}
+                    {'query': 'SELECT {}'.format(args)},
+                    {'enableScanInQuery': True},
                 )),
                 indent=2,
                 sort_keys=True,
