@@ -12,12 +12,14 @@ import pydocumentdb.document_client as document_client
 import re
 
 
+cmd2.constants.REDIRECTION_OUTPUT = '->'
+cmd2.constants.REDIRECTION_APPEND = '->>'
+cmd2.constants.REDIRECTION_CHARS = [
+    cmd2.constants.REDIRECTION_PIPE, cmd2.constants.REDIRECTION_OUTPUT]
+
+
 class CosmosPrompt(Cmd):
     def __init__(self):
-        cmd2.constants.REDIRECTION_OUTPUT = '->'
-        cmd2.constants.REDIRECTION_APPEND = '->>'
-        cmd2.constants.REDIRECTION_CHARS = [
-            cmd2.constants.REDIRECTION_PIPE, cmd2.constants.REDIRECTION_OUTPUT]
         Cmd.__init__(self, persistent_history_file='~/.cosmos-cli-history')
         self.client = self.get_client()
         self.database = None
@@ -97,9 +99,9 @@ class CosmosPrompt(Cmd):
 
         Color codes are stripped from output during redirection with pager
         set to False."""
-        if args.lower() == 'true':
+        if args.lower() in ('true', 'on'):
             self.output_function = self.ppaged
-        elif args.lower() == 'false':
+        elif args.lower() in ('false', 'off'):
             self.output_function = self.poutput
         self.poutput('pager: {}'.format(self.output_function == self.ppaged))
 
@@ -121,7 +123,61 @@ class CosmosPrompt(Cmd):
         self.collection = args
         self.update_prompt()
 
+    def ppaged(self, msg: str, end: str = '\n', chop: bool = False) -> None:
+        """Overriding until cmd2 accepts this fix
+        """
+        import subprocess
+        import sys
+        if msg is not None and msg != '':
+            try:
+                msg_str = '{}'.format(msg)
+                if not msg_str.endswith(end):
+                    msg_str += end
+
+                functional_terminal = False
+
+                if self.stdin.isatty() and self.stdout.isatty():
+                    if sys.platform.startswith('win') or \
+                            os.environ.get('TERM') is not None:
+                        functional_terminal = True
+
+                if functional_terminal and not self.redirecting and \
+                        not self._in_py and not self._script_dir:
+                    if self.colors.lower() == \
+                            cmd2.constants.COLORS_NEVER.lower():
+                        msg_str = utils.strip_ansi(msg_str)
+
+                    pager = self.pager
+                    if chop:
+                        pager = self.pager_chop
+                    self.pipe_proc = subprocess.Popen(
+                        pager, shell=True, stdin=subprocess.PIPE)
+                    try:
+                        self.pipe_proc.stdin.write(msg_str.encode('utf-8',
+                                                                  'replace'))
+                        self.pipe_proc.stdin.close()
+                    except (OSError, KeyboardInterrupt):
+                        pass
+
+                    while True:
+                        try:
+                            self.pipe_proc.wait()
+                        except KeyboardInterrupt:
+                            pass
+                        else:
+                            break
+                    self.pipe_proc = None
+                else:
+                    self.decolorized_write(self.stdout, msg_str)
+            except BrokenPipeError:
+                if self.broken_pipe_warning:
+                    sys.stderr.write(self.broken_pipe_warning)
+
 
 def main():
     prompt = CosmosPrompt()
     prompt.cmdloop('Connected to CosmosDB')
+
+
+if __name__ == '__main__':
+    main()
