@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-from cmd2 import Cmd
+from functools import partial
+from cmd2 import Cmd, utils
 import cmd2.constants
 from pydocumentdb.errors import HTTPFailure
 from pygments import highlight
@@ -9,7 +10,6 @@ from termcolor import colored
 import json
 import os
 import pydocumentdb.document_client as document_client
-import re
 
 
 cmd2.constants.REDIRECTION_OUTPUT = '->'
@@ -18,10 +18,20 @@ cmd2.constants.REDIRECTION_CHARS = [
     cmd2.constants.REDIRECTION_PIPE, cmd2.constants.REDIRECTION_OUTPUT]
 
 
+def get_id(x):
+    return x['id']
+
+
+def startswith(text, x):
+    return x.startswith(text)
+
+
 class CosmosPrompt(Cmd):
     def __init__(self):
         Cmd.__init__(self, persistent_history_file='~/.cosmos-cli-history')
         self.client = self.get_client()
+        self._databases = None
+        self._collections = None
         self.database = None
         self.collection = None
         self.result_json = None
@@ -117,12 +127,30 @@ class CosmosPrompt(Cmd):
     def do_database(self, args):
         """Set CosmosDB database."""
         self.database = args
+        self._collections = list(map(
+            get_id,
+            self.client.QueryCollections(
+                '/dbs/{}'.format(self.database),
+                'SELECT * FROM c'
+            )
+        ))
         self.update_prompt()
+
+    def complete_database(self, text, line, begidx, endidx):
+        if self._databases is None:
+            self._databases = list(map(
+                get_id,
+                self.client.QueryDatabases('SELECT * FROM d')))
+        return filter(partial(startswith, text), self._databases)
 
     def do_collection(self, args):
         """Set CosmosDB database collection."""
         self.collection = args
         self.update_prompt()
+
+    def complete_collection(self, text, line, begidx, endidx):
+        if self._collections:
+            return filter(partial(startswith, text), self._collections)
 
     def ppaged(self, msg: str, end: str = '\n', chop: bool = False) -> None:
         """Overriding until cmd2 accepts this fix
