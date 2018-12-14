@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import argparse
 from functools import partial
 from cmd2 import Cmd, utils
 import cmd2.constants
@@ -9,6 +10,7 @@ from pygments.formatters import TerminalFormatter
 from termcolor import colored
 import json
 import os
+import sys
 import pydocumentdb.document_client as document_client
 
 
@@ -204,7 +206,22 @@ class CosmosPrompt(Cmd):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', '--database', type=str)
+    parser.add_argument('-c', '--collection', type=str)
+    parser.add_argument('commands', nargs='*')
+    args = parser.parse_args()
     prompt = CosmosPrompt()
+    if args.database:
+        prompt.do_database(args.database)
+    if args.collection:
+        prompt.do_collection(args.collection)
+    if args.commands:
+        for command in args.commands:
+            prompt.onecmd(command)
+        return
+    else:
+        sys.argv = sys.argv[:1]
     prompt.cmdloop('Connected to CosmosDB')
 
 
