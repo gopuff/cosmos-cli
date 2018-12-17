@@ -1,13 +1,28 @@
 # cosmos-cli
 Basic CLI for CosmosDB
 
+## Requirements
+
+* Python 3
+
 ## Installation
 
-    pip install cosmos-cli
+    pip3 install cosmos-cli
 
 ## Usage
 
+    usage: cosmos-cli [-h] [-d DATABASE] [-c COLLECTION] [commands [commands ...]]
+
+    positional arguments:
+      commands
+
+    optional arguments:
+      -h, --help                  show this help message and exit
+      -d DATABASE, --database     Set CosmosDB database
+      -c COLLECTION, --collection Set CosmosDB database collection
+
 Set `COSMOS_ENDPOINT` and `COSMOS_ACCOUNT_KEY` in environment variables. Run `cosmos-cli`.
+
 There are currently three main commands:
 
 * `database <database_name>` – set the current database
