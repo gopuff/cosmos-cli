@@ -9,7 +9,7 @@ setup(
     python_requires='>=3.4',
     py_modules=['cosmos_cli'],
     install_requires=[
-        'cmd2',
+        'cmd2>=0.9.7',
         'pydocumentdb',
         'pygments',
         'termcolor',
